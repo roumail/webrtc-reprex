@@ -9,8 +9,8 @@ const main = document.querySelector('main');
 const STATUS = {
   idle: 'Ready',
   preparing: 'Preparing…',
-  'waiting-for-answer': 'Send the text below to the other device, then use its answer',
-  connecting: 'Send the text below back, then wait',
+  'waiting-for-answer': 'Copy box 3 to the other device; then paste its answer in box 2 and tap Use',
+  connecting: 'Copy box 3 back to the caller, then wait',
   connected: 'Connected',
   ended: 'Call ended',
   failed: 'Call failed',
@@ -166,7 +166,24 @@ function finish(state) {
   if (pc) pc.close();
   if (mic) for (const track of mic.getTracks()) track.stop();
   pc = null;
+  mic = null;
+  control = null;
   setState(state);
+}
+
+// Back to ready without reloading (an installed web app has no reload button).
+function startOver() {
+  if (control && control.readyState === 'open') control.send('bye');
+  finish('idle');
+  lastBytes = 0;
+  $('incoming').value = '';
+  $('outgoing').value = '';
+  $('copy').disabled = true;
+  $('copy').textContent = 'Copy';
+  $('stats').dataset.bytesReceived = '0';
+  $('stats').textContent = 'No audio yet';
+  showError('');
+  log('started over');
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +230,8 @@ async function useIncoming() {
     await answerCall(description);
   } else if (description.type === 'answer' && state === 'waiting-for-answer') {
     await useAnswer(description);
+  } else if (description.type === 'offer' && state === 'waiting-for-answer') {
+    showError("Both devices tapped Call. On this one, tap Start over, then paste the other device's text and tap Use.");
   } else {
     showError(`That's ${description.type === 'offer' ? 'a call' : 'an answer'} text, but this device is "${STATUS[state]}".`);
   }
@@ -224,6 +243,7 @@ async function useIncoming() {
 $('call').addEventListener('click', startCall);
 $('use').addEventListener('click', useIncoming);
 $('hangup').addEventListener('click', hangUp);
+$('start-over').addEventListener('click', startOver);
 $('copy').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText($('outgoing').value);

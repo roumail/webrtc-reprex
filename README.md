@@ -61,7 +61,7 @@ webrtc-reprex/
 
 **The app ↔ test contract:** `data-state` on `<main>` (`idle`, `preparing`,
 `waiting-for-answer`, `connecting`, `connected`, `ended`, `failed`); test ids
-`call`, `incoming`, `use`, `outgoing`, `hangup`, `stats`, `log`, `error`;
+`call`, `incoming`, `use`, `outgoing`, `hangup`, `start-over`, `stats`, `log`, `error`;
 `data-bytes-received` on the stats line. Tests wait on these, never on time.
 
 ## The scenarios (`tests/call.spec.js`)
@@ -71,6 +71,8 @@ webrtc-reprex/
 | an audio call connects by copy-paste | offer → answer → connected; audio bytes keep arriving on both sides |
 | hanging up ends the call on both sides | "hang up" reaches the other side at once |
 | a text that is not a call text is refused | pasting anything else gives a clear error, nothing starts |
+| when both devices tap Call, the one that uses the other's text is told what to do | the mistake made on the first real try is explained, and Start over recovers |
+| Start over returns a device to ready | an installed web app has no reload button; Start over ends any call and clears both boxes |
 | the log records the app going to the background and back | hidden/visible are logged with times, and the call itself survives in a desktop browser |
 
 ## Running the tests
@@ -89,10 +91,15 @@ Page: https://www.rohailtaimour.com/webrtc-reprex/ (both devices on the same Wi-
 
 1. **iPhone:** open the page in Safari → Share → Add to Home Screen → open
    **Call check** from the home screen.
+   Only the Mac taps **Call**; the iPhone never does, it answers.
 2. **Mac:** open the page in Safari or Chrome → **Call** → allow the
-   microphone → **Copy**.
-3. **iPhone:** **Paste** → **Use** → allow the microphone → **Copy**.
-4. **Mac:** **Paste** → **Use**. Both should say *Connected*; talk.
+   microphone → **Copy** (box 3).
+3. **iPhone:** **Paste** (box 2) → **Use** → allow the microphone →
+   **Copy** (box 3).
+4. **Mac:** **Paste** (box 2) → **Use**. Both should say *Connected*; talk.
+
+   Copying between the devices is Universal Clipboard: same Apple ID,
+   Wi-Fi and Bluetooth on, Handoff on. Mixed up? **Start over** on both.
 5. **The real question**, with the call running, one at a time:
    - lock the iPhone for ~30 s, unlock, come back to the app;
    - switch to another app for ~30 s, come back;
