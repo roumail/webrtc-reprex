@@ -1,0 +1,11 @@
+{
+  "name": "webrtc-reprex",
+  "private": true,
+  "description": "Reprex: an audio call between two devices on the same Wi-Fi, set up by copy-paste",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}
