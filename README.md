@@ -112,4 +112,4 @@ Page: https://www.rohailtaimour.com/webrtc-reprex/ (both devices on the same Wi-
 
 | Date | iPhone / iOS | Locked 30 s | Other app 30 s | Notes |
 |---|---|---|---|---|
-| | | | | |
+| 2026-11-21 | iPhone (model/iOS to add), home-screen app ↔ Mac browser | **Call kept going**; iPhone → Mac direction to confirm | **Mac → iPhone audio kept going** (Mac keyboard heard); iPhone → Mac to confirm | Connected only after a VPN on the Mac (NordVPN) was turned off and/or the browser got macOS *Local Network* permission: it blocked the direct Wi-Fi path. Echo and delay were from both devices in one room. iOS refused the **Paste** button in the home-screen app; tap-and-hold → Paste works. |
