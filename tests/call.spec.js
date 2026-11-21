@@ -10,12 +10,13 @@
 //
 // App <-> test contract: data-state on <main> (idle, preparing,
 // waiting-for-answer, connecting, connected, ended, failed), the test ids
-// below (incl. start-over), data-bytes-received on the stats line, the log.
+// below (incl. start-over, copy-log), data-bytes-received on the stats line,
+// the log (kept across reloads in localStorage key 'callcheck.log').
 // Tests wait on state, never on time.
 const { test, expect } = require('@playwright/test');
 
 async function device(browser, name) {
-  const context = await browser.newContext({ permissions: ['microphone'] });
+  const context = await browser.newContext({ permissions: ['microphone', 'clipboard-read', 'clipboard-write'] });
   // The environment, not the app: lets a test hide the page like locking
   // the phone or switching apps does.
   await context.addInitScript(() => {
@@ -175,5 +176,38 @@ test('Scenario: the log records the app going to the background and back', async
   await test.step('And the call is still connected with audio arriving', async () => {
     await expect(iphone.main).toHaveAttribute('data-state', 'connected');
     await expectAudioArriving(iphone);
+  });
+});
+
+test('Scenario: the log survives the app being reloaded', async ({ browser }) => {
+  // iOS can reload a home-screen web app that was in the background; the
+  // log is the evidence of what happened, so it must not be lost with it.
+  const { iphone } = await test.step('Given a call that has connected and ended', async () => {
+    const call = await connectedCall(browser);
+    await call.mac.page.getByTestId('hangup').click();
+    await expect(call.iphone.main).toHaveAttribute('data-state', 'ended');
+    return call;
+  });
+  await test.step('When the app is reloaded', async () => {
+    await iphone.page.reload();
+    await expect(iphone.main).toHaveAttribute('data-state', 'idle');
+  });
+  await test.step('Then the log still shows the call, and marks the reload', async () => {
+    const log = iphone.page.getByTestId('log');
+    await expect(log).toContainText('connection: connected');
+    await expect(log).toContainText('the other device hung up');
+    await expect(log).toContainText('page loaded');
+  });
+});
+
+test('Scenario: Copy log puts the whole log on the clipboard', async ({ browser }) => {
+  const { iphone } = await test.step('Given a connected call', () => connectedCall(browser));
+  await test.step('When the iPhone taps Copy log', async () => {
+    await iphone.page.getByTestId('copy-log').click();
+  });
+  await test.step('Then the clipboard holds the log, one line per entry', async () => {
+    const copied = await iphone.page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain('connection: connected');
+    expect(copied.split('\n').length).toBeGreaterThan(3);
   });
 });
