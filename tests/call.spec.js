@@ -10,7 +10,7 @@
 //
 // App <-> test contract: data-state on <main> (idle, preparing,
 // waiting-for-answer, connecting, connected, ended, failed), the test ids
-// below, data-bytes-received on the stats line, and the event log.
+// below (incl. start-over), data-bytes-received on the stats line, the log.
 // Tests wait on state, never on time.
 const { test, expect } = require('@playwright/test');
 
@@ -110,6 +110,52 @@ test('Scenario: a text that is not a call text is refused', async ({ browser }) 
   await test.step('Then it says so and nothing starts', async () => {
     await expect(iphone.page.getByTestId('error')).toHaveText("That isn't a call text.");
     await expect(iphone.main).toHaveAttribute('data-state', 'idle');
+  });
+});
+
+test('Scenario: when both devices tap Call, the one that uses the other\'s text is told what to do', async ({ browser }) => {
+  const mac = await test.step('Given two devices that both tapped Call', async () => {
+    const side = await device(browser, 'Mac');
+    await side.page.getByTestId('call').click();
+    await expect(side.main).toHaveAttribute('data-state', 'waiting-for-answer');
+    return side;
+  });
+  const iphone = await device(browser, 'iPhone');
+  await iphone.page.getByTestId('call').click();
+  await expect(iphone.main).toHaveAttribute('data-state', 'waiting-for-answer');
+  await test.step('When the iPhone uses the Mac\'s call text', () => carry(mac, iphone));
+  await test.step('Then it explains: Start over on this one, then use the text again', async () => {
+    await expect(iphone.page.getByTestId('error')).toHaveText(
+      'Both devices tapped Call. On this one, tap Start over, then paste the other device\'s text and tap Use.',
+    );
+    await expect(iphone.main).toHaveAttribute('data-state', 'waiting-for-answer');
+  });
+  await test.step('When it starts over and uses the Mac\'s text again', async () => {
+    await iphone.page.getByTestId('start-over').click();
+    await expect(iphone.main).toHaveAttribute('data-state', 'idle');
+    await carry(mac, iphone);
+  });
+  await test.step('Then the call goes ahead', async () => {
+    await expect(iphone.main).toHaveAttribute('data-state', 'connecting');
+    await carry(iphone, mac);
+    await expect(mac.main).toHaveAttribute('data-state', 'connected');
+    await expect(iphone.main).toHaveAttribute('data-state', 'connected');
+  });
+});
+
+test('Scenario: Start over returns a device to ready', async ({ browser }) => {
+  const { mac, iphone } = await test.step('Given a connected call', () => connectedCall(browser));
+  await test.step('When the Mac taps Start over', async () => {
+    await mac.page.getByTestId('start-over').click();
+  });
+  await test.step('Then the Mac is ready again, with both text boxes empty', async () => {
+    await expect(mac.main).toHaveAttribute('data-state', 'idle');
+    await expect(mac.page.getByTestId('incoming')).toHaveValue('');
+    await expect(mac.page.getByTestId('outgoing')).toHaveValue('');
+    await expect(mac.page.getByTestId('call')).toBeEnabled();
+  });
+  await test.step('And the call has ended on the iPhone', async () => {
+    await expect(iphone.main).toHaveAttribute('data-state', 'ended');
   });
 });
 
