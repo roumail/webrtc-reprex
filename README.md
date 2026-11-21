@@ -61,8 +61,9 @@ webrtc-reprex/
 
 **The app ↔ test contract:** `data-state` on `<main>` (`idle`, `preparing`,
 `waiting-for-answer`, `connecting`, `connected`, `ended`, `failed`); test ids
-`call`, `incoming`, `use`, `outgoing`, `hangup`, `start-over`, `stats`, `log`, `error`;
-`data-bytes-received` on the stats line. Tests wait on these, never on time.
+`call`, `incoming`, `use`, `outgoing`, `hangup`, `start-over`, `stats`, `log`, `copy-log`, `error`;
+`data-bytes-received` on the stats line; the log is kept in `localStorage`
+(`callcheck.log`, last 500 lines). Tests wait on these, never on time.
 
 ## The scenarios (`tests/call.spec.js`)
 
@@ -73,6 +74,8 @@ webrtc-reprex/
 | a text that is not a call text is refused | pasting anything else gives a clear error, nothing starts |
 | when both devices tap Call, the one that uses the other's text is told what to do | the mistake made on the first real try is explained, and Start over recovers |
 | Start over returns a device to ready | an installed web app has no reload button; Start over ends any call and clears both boxes |
+| the log survives the app being reloaded | iOS may reload a home-screen app that was in the background; the log (the evidence) is kept and the reload is marked |
+| Copy log puts the whole log on the clipboard | the log can be sent off the phone |
 | the log records the app going to the background and back | hidden/visible are logged with times, and the call itself survives in a desktop browser |
 
 ## Running the tests
@@ -105,11 +108,17 @@ Page: https://www.rohailtaimour.com/webrtc-reprex/ (both devices on the same Wi-
    - switch to another app for ~30 s, come back;
    - meanwhile, keep talking on the Mac: is the iPhone's audio heard? Does
      the Mac still hear the iPhone?
-6. Read the iPhone's log (it lists hidden/visible, microphone muted/unmuted,
-   connection changes, with times) and note the results below.
+6. On the iPhone, tap **Copy log** and send it (it lists page loads,
+   hidden/visible, microphone muted/unmuted, connection changes, with
+   times). It's kept across reloads until the 500-line limit. Note the
+   results below.
+
+Turn off any VPN on both devices first: on the first try a VPN on the Mac
+blocked the direct Wi-Fi path, and with no TURN server there is no way
+around it.
 
 ### Results
 
 | Date | iPhone / iOS | Locked 30 s | Other app 30 s | Notes |
 |---|---|---|---|---|
-| 2026-11-21 | iPhone (model/iOS to add), home-screen app ↔ Mac browser | **Call kept going**; iPhone → Mac direction to confirm | **Mac → iPhone audio kept going** (Mac keyboard heard); iPhone → Mac to confirm | Connected only after a VPN on the Mac (NordVPN) was turned off and/or the browser got macOS *Local Network* permission: it blocked the direct Wi-Fi path. Echo and delay were from both devices in one room. iOS refused the **Paste** button in the home-screen app; tap-and-hold → Paste works. |
+| 2026-11-21 | iPhone (model/iOS to add), home-screen app ↔ Mac browser | **Call kept going**; iPhone → Mac direction to confirm | **Mac → iPhone audio kept going** (Mac keyboard heard); iPhone → Mac to confirm | Connected only after the VPN on the Mac (NordVPN) was turned off: it blocked the direct Wi-Fi path. The iPhone's log was lost afterwards (kept only in memory); it now survives reloads and has Copy log. Echo and delay were from both devices in one room. iOS refused the **Paste** button in the home-screen app; tap-and-hold → Paste works. |

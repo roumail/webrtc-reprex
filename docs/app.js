@@ -34,12 +34,43 @@ function setState(state) {
   log(`state: ${state}`);
 }
 
-function log(text) {
-  const time = new Date().toTimeString().slice(0, 8);
+// The log is kept in this device's storage, so it survives iOS reloading a
+// home-screen app that was in the background. Last 500 lines.
+const LOG_KEY = 'callcheck.log';
+const LOG_MAX = 500;
+let logLines = [];
+
+function loadLog() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOG_KEY) ?? '[]');
+    if (Array.isArray(saved)) logLines = saved.filter((line) => typeof line === 'string');
+  } catch {
+    logLines = [];
+  }
+  for (const line of logLines) showLogLine(line);
+}
+
+function showLogLine(line) {
   const item = document.createElement('li');
-  item.textContent = `${time} ${text}`;
+  item.textContent = line;
   $('log').append(item);
   $('log').scrollTop = $('log').scrollHeight;
+}
+
+function log(text) {
+  const now = new Date();
+  const line = `${now.toTimeString().slice(0, 8)} ${text}`;
+  logLines.push(line);
+  if (logLines.length > LOG_MAX) {
+    logLines = logLines.slice(-LOG_MAX);
+    $('log').firstElementChild?.remove();
+  }
+  showLogLine(line);
+  try {
+    localStorage.setItem(LOG_KEY, JSON.stringify(logLines));
+  } catch {
+    // storage unavailable: the log still shows on screen
+  }
 }
 
 function showError(text) {
@@ -265,6 +296,16 @@ document.addEventListener('visibilitychange', () => log(`app ${document.visibili
 window.addEventListener('pagehide', () => log('page hidden by the system'));
 window.addEventListener('pageshow', (event) => { if (event.persisted) log('page restored'); });
 
+$('copy-log').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(logLines.join('\n'));
+    $('copy-log').textContent = 'Log copied';
+  } catch (error) {
+    showError(`Couldn't copy the log: ${error.message}`);
+  }
+});
+
 const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-log(standalone ? 'running from the home screen' : 'running in the browser');
+loadLog();
+log(`page loaded, ${standalone ? 'running from the home screen' : 'running in the browser'}`);
 setState('idle');

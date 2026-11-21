@@ -28,7 +28,7 @@
     #stats { color: var(--muted); margin: 0; }
     .hint { color: var(--muted); font-size: 0.9rem; margin: 0.5rem 0 0; }
     #error { color: var(--danger); min-height: 1.4em; margin: 0.5rem 0 0; }
-    #log { margin: 0; padding: 0.6rem; border-radius: 10px; background: var(--field); font: 12px/1.45 ui-monospace, monospace;
+    #log { margin: 0 0 0.5rem; padding: 0.6rem; border-radius: 10px; background: var(--field); font: 12px/1.45 ui-monospace, monospace;
            list-style: none; max-height: 16rem; overflow-y: auto; }
   </style>
 </head>
@@ -62,6 +62,7 @@
 
     <h2>Log</h2>
     <ul id="log" data-testid="log"></ul>
+    <button id="copy-log" data-testid="copy-log" class="secondary" type="button">Copy log</button>
     <audio id="remote" playsinline></audio>
   </main>
   <script src="app.js"></script>
